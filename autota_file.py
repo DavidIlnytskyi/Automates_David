@@ -1,79 +1,142 @@
-import numpy as np
-from tkinter import *
-from tkinter import messagebox
-from scipy.fft import fft, fftfreq
-import librosa
-import soundfile as sf
+'''This module contains simulation of my life'''
+from random import random
 
-DICT_FREQ = {0: (0, 60), 60: (0, 170), 170: (60, 310),
-             310: (170, 600), 600: (310, 1000), 1000: (600, 3000),
-             3000: (1000, 6000), 6000: (3000, 10000)}
+class Simulation:
+    '''Simulates my life'''
+    def __init__(self):
+        self.state = None
+        self._time = None
 
-def indexer(freq, frequency):
-    temp = frequency[:size//2]
-    total = len(temp)
-    differ = total // temp[-1]
-    index = round(differ * freq)
-    return index
+    def set_simulation_input(self, time=24):
+        '''Sets number of time'''
+        self._time = time
 
-def db_changer(freq, db, fourier, frequency):
-    start, end = DICT_FREQ[freq]
-    start, end = indexer(start, frequency), indexer(end, frequency)
-    mid = indexer(freq, frequency)
-    fourier = np.log10(fourier) * 20
-    for i in range(start, mid):
-        value = fourier[i] * (0.7 * (i - start) / (mid - start)) * db / 100
-        value = value if value <= fourier[i] else fourier[i]
-        fourier[i] += value
-    for i in range(mid, end):
-        value = fourier[i] * (0.7 * (end - i) / (end - mid)) * db / 100
-        value = value if value <= fourier[i] else fourier[i]
-        fourier[i] += value
-    fourier /= 20
-    fourier = np.power(10, fourier)
-    return fourier
+    def simulate(self):
+        '''Simulates'''
+        State = States()
+        self.state = State.CHILL
+        for hour in range(0, 2 * 30 * self._time + 30, 30):
 
-def update_db_changer():
-    global fourier
-    modified_fourier = np.copy(fourier)
-    for i, slider in enumerate(sliders):
-        freq = list(DICT_FREQ.keys())[i]
-        db = slider.get()
-        if db != 0:
-            modified_fourier = db_changer(freq, db, modified_fourier, frequency)
-    return modified_fourier
+            if hour % 24 < 1440:
+                hour = hour % 1440
 
-def save_modified_audio():
-    modified_fourier = update_db_changer()
-    reconstructed_audio = np.array(np.fft.ifft(modified_fourier), dtype="float64")
-    sf.write("modified_audio.wav", reconstructed_audio, sample_rate)
-    messagebox.showinfo("Success", "Modified audio saved successfully.")
+            if self.state == State.SLEEP:
+                if random() <= 0.9 and int(hour/60) == 9 and hour%60 == 0:
+                    print(f'{self.get_time(hour)} Good morning world! Let\'s make my morning routine.')
+                    self.state = State.EAT
+                elif int(hour//60) == 10 and hour%60 == 30:
+                    print(f'{self.get_time(hour)} I have overslept this time, this is bad')
+                    self.state = State.EAT
+                else:
+                    print(f'{self.get_time(hour)} Sleeping...')
 
-audio_sample, sample_rate = librosa.load('stalker.wav', sr = 44100)
-size = audio_sample.size
-dt_audio = 1 / sample_rate
-frequency = fftfreq(size, dt_audio)
-fourier = fft(audio_sample)
 
-root = Tk()
-root.title("Audio Modifier")
-root.geometry("800x220")
+            elif self.state == State.EAT:
+                    if 9 <= int(hour//60) <= 11:
+                        print(f'{self.get_time(hour)} That was awesome breakfast, time to regenerate')
+                        self.state = State.CHILL
+                    elif 15 <= int(hour//60) <= 16:
+                        print(f'{self.get_time(hour)} That was awesome dinner')
+                        self.state = State.CHILL
+                    elif 19 <= int(hour//60) <= 20:
+                        print(f'{self.get_time(hour)} That was awesome supper')
+                        self.state = State.CHILL
+                    else:
+                        self.state = State.STUDY
 
-sliders_frame = Frame(root)
-sliders_frame.pack(pady=10)
+            elif self.state == State.CHILL:
+                if random() >= 0.6:
+                    print(f'{self.get_time(hour)} I have to rest')
+                    self.state = State.COMMUNICATE
+                elif 10 <= int(hour//60) <= 21:
+                    print(f'{self.get_time(hour)} Going on a walk')
+                    self.state = State.WALK
+                else:
+                    print(f'{self.get_time(hour)} Hm, let\'s watch Stranger Things')
+                    self.state = State.MOVIE
 
-sliders = []
-for i, freq in enumerate(sorted(DICT_FREQ.keys())):
-    start, end = DICT_FREQ[freq]
-    slider = Scale(sliders_frame, from_=100, to=-100, orient="vertical", resolution=1)
-    slider.set(0)
-    slider.grid(row=0, column=i, padx=10, pady=5)
-    sliders.append(slider)
+            elif self.state == State.COMMUNICATE:
+                if random() >= 0.6 and int(hour//60) == 0:
+                    print(f'{self.get_time(hour)} It was fun to communicate with you.')
+                    self.state = State.SLEEP_READY
 
-    freq_label = Label(sliders_frame, text=f"Freq: {freq}")
-    freq_label.grid(row=1, column=i, padx=10)
+                elif int(hour//60) == 1 and hour%60 in (0, 30):
+                    print(f'{self.get_time(hour)} Talking with friends')
+                    self.state = State.SLEEP_READY
 
-ok_button = Button(root, text="OK", command=save_modified_audio)
-ok_button.pack(pady=10)
+                elif int(hour//60) in (21, 22, 16, 17, 11, 12):
+                    print(f'{self.get_time(hour)} Talking with friends')
+                    self.state = State.STUDY
 
-root.mainloop()
+                else:
+                    print(f'{self.get_time(hour)} Talking with friends')
+
+            elif self.state == State.SLEEP_READY:
+                if random() >= 0.2:
+                    print(f'{self.get_time(hour)} I have to get ready to sleep')
+                    self.state = State.SLEEP
+                else:
+                    print(f'{self.get_time(hour)} I have to get ready for sleep')
+                    self.state = State.PROCRASTINATE
+
+            elif self.state == State.WALK:
+                if random() >= 0.2:
+                    print(f'{self.get_time(hour)} Walking')
+                    self.state = State.STUDY
+                else:
+                    print(f'{self.get_time(hour)} Walking')
+
+
+            elif self.state == State.MOVIE:
+                if random() > 0.1 and 10 <= int(hour//60) <= 21:
+                    print(f'{self.get_time(hour)} This one is the last one!')
+                    self.state = State.STUDY
+                elif not 10 <= int(hour//60) <= 23:
+                    print(f'{self.get_time(hour)} This one is the last one!')
+                    self.state = State.SLEEP_READY
+                else:
+                    print(f'{self.get_time(hour)} Let\'s watch one more')
+
+            elif self.state == State.STUDY:
+                if 15 <= int(hour//60) <= 16:
+                    print(f'{self.get_time(hour)} Studying')
+                    self.state = State.EAT
+                elif 19 <= int(hour//60) <= 20:
+                    print(f'{self.get_time(hour)} Studying')
+                    self.state = State.EAT
+                elif int(hour//60) == 22:
+                    print(f'{self.get_time(hour)} Studying')
+                    self.state = State.CHILL
+                else:
+                    print(f'{self.get_time(hour)} Studying')
+
+            elif self.state == State.PROCRASTINATE:
+                if 9 >= int(hour//60) >= 0:
+                    if random() >= 0.9:
+                        print(f'{self.get_time(hour)} Let\'s check Instagram')
+                    else:
+                        print(f'{self.get_time(hour)} Let\'s check Instagram')
+                        self.state = State.SLEEP
+
+    @staticmethod
+    def get_time(hour):
+        '''Return hour representation'''
+        return f'{hour//60 if not hour//60 == 0 else "00"}:{hour%60 if not hour%60 == 0 else "00"}:'
+
+class States:
+    '''Class contains states that David can be in'''
+    def __init__(self):
+        '''Containts all states'''
+        States.SLEEP = 1
+        States.STUDY = 2
+        States.EAT = 3
+        States.COMMUNICATE = 4
+        States.WALK = 5
+        States.CHILL = 6
+        States.SLEEP_READY = 7
+        States.MOVIE = 8
+        States.PROCRASTINATE = 9
+
+David = Simulation()
+David.set_simulation_input(24)
+David.simulate()
